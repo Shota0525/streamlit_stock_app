@@ -9,7 +9,6 @@ from plotly.subplots import make_subplots
 import ta
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
-import pandas_ta as pta
 
 
 # 基本条件を指定
@@ -86,25 +85,29 @@ def calculate_rsi(ticker, period, interval):
 # MACDとシグナル線を計算し、ヒストグラムをプロットする関数
 def plot_macd_histogram(ticker, period, interval):
     data = get_stock_price(ticker, period, interval)
-    macd_data = pta.macd(data['Close'])
     
-    # MACD、シグナル、ヒストグラムの値を取得
-    macd = macd_data['MACD_12_26_9']
-    signal = macd_data['MACDs_12_26_9']
-    histogram = macd_data['MACDh_12_26_9']
+    # MACDを計算
+    short_window = 12
+    long_window = 26
+    signal_window = 9
+    
+    data['EMA12'] = data['Close'].ewm(span=short_window, adjust=False).mean()
+    data['EMA26'] = data['Close'].ewm(span=long_window, adjust=False).mean()
+    data['MACD'] = data['EMA12'] - data['EMA26']
+    data['Signal'] = data['MACD'].ewm(span=signal_window, adjust=False).mean()
+    data['Histogram'] = data['MACD'] - data['Signal']
     
     # プロットの区切りを設定
     fig = go.Figure()
     # MACDのヒストグラムを棒グラフで描画
-    fig.add_trace(go.Bar(x=data.index, y=histogram, name='MACD Histogram', marker_color='lightgray'))
+    fig.add_trace(go.Bar(x=data.index, y=data['Histogram'], name='MACD Histogram', marker_color='lightgray'))
     # MACDのラインを折れ線グラフで描画
-    fig.add_trace(go.Scatter(x=data.index, y=macd, mode='lines', name='MACD', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['MACD'], mode='lines', name='MACD', line=dict(color='lightblue')))
     # シグナル線を折れ線グラフで描画
-    fig.add_trace(go.Scatter(x=data.index, y=signal, mode='lines', name='Signal Line', line=dict(color='lightcoral')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Signal'], mode='lines', name='Signal Line', line=dict(color='lightcoral')))
     # グラフのタイトルとレイアウトを設定
-    fig.update_layout(title={'text': '【MACD】Blue,  【Signal】Red', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'},xaxis_rangeslider_visible=False, showlegend=False)
+    fig.update_layout(title={'text': '【MACD】Blue,  【Signal】Red', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
     return fig
-
 ###############################################################################################################################################
 
 
@@ -172,13 +175,13 @@ target_Mean_Price = get_stock_data(stock_data, 'targetMeanPrice')  # 目標株�
 col1, col2 = st.columns(2)
 with col1:
     if market_cap is not None:
-        st.metric('時価総額', "{:,.0f}".format(market_cap))
+        st.metric('時価総額（億円）', "{:,.2f}".format(market_cap/10**8))
     if dividend_yield is not None:
         st.metric('配当利回り（％）', "{:,.2f}".format(dividend_yield*100))
     if pbr is not None:
             st.metric('PBR（株価純資産倍率; 東証平均1.5倍）', "{:,.2f}".format(pbr))
     if total_Revenue is not None:
-            st.metric('総売上高', "{:,.0f}".format(total_Revenue))
+            st.metric('総売上高（億円）', "{:,.2f}".format(total_Revenue/10**8))
     if return_OnEquity is not None:
             st.metric('ROE（自己資本利益率）', "{:,.2f}".format(return_OnEquity*100))
 with col2:
