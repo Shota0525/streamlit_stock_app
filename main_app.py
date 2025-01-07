@@ -78,6 +78,7 @@ with col1:
     st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債'))
 with col2:
     st.plotly_chart(plot_stock_price('^SOX', period, 'フィラデルフィア半導体指数（SOX）'))
+    st.plotly_chart(plot_stock_price('^XAU', period, '金 現物'))
 st.divider()
 
 
