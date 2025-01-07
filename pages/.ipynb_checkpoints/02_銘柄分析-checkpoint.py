@@ -35,7 +35,7 @@ def plot_stock_price(ticker, period, interval, title):
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
 
     # 株価データと移動曲線を描画
-    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original'))
+    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
@@ -160,15 +160,16 @@ st.plotly_chart( plot_macd_histogram(ticker, period, interval))
 
 # yfinanceから株関連データを取得
 stock_data = yf.Ticker(ticker)
+current_Price = get_stock_data(stock_data, 'currentPrice')  # 最新株価
 market_cap = get_stock_data(stock_data, 'marketCap')  # 時価総額
 dividend_Rate = get_stock_data(stock_data, 'dividendRate')  # 年間配当金
 dividend_yield = get_stock_data(stock_data, 'dividendYield')  # 配当利回り
 payout_Ratio = get_stock_data(stock_data, 'payoutRatio')  # 配当性向
 pbr = get_stock_data(stock_data, 'priceToBook')  # PBR
 per = get_stock_data(stock_data, 'trailingPE')  # PER（直近12ヶ月の利益に基づく）
+return_OnEquity = get_stock_data(stock_data, 'returnOnEquity')  #  ROE（自己資本利益率）
 total_Revenue = get_stock_data(stock_data, 'totalRevenue')  # 総売上高
 operating_Margins = get_stock_data(stock_data, 'operatingMargins')  # 営業利益率
-return_OnEquity = get_stock_data(stock_data, 'returnOnEquity')  #  ROE（自己資本利益率）
 target_Mean_Price = get_stock_data(stock_data, 'targetMeanPrice')  # 目標株価（アナリスト平均）
     
 # 詳細情報を表示
@@ -176,24 +177,26 @@ col1, col2 = st.columns(2)
 with col1:
     if market_cap is not None:
         st.metric('時価総額（億円）', "{:,.2f}".format(market_cap/10**8))
-    if dividend_yield is not None:
-        st.metric('配当利回り（％）', "{:,.2f}".format(dividend_yield*100))
-    if pbr is not None:
-            st.metric('PBR（株価純資産倍率; 東証平均1.5倍）', "{:,.2f}".format(pbr))
-    if total_Revenue is not None:
-            st.metric('総売上高（億円）', "{:,.2f}".format(total_Revenue/10**8))
-    if return_OnEquity is not None:
-            st.metric('ROE（自己資本利益率）', "{:,.2f}".format(return_OnEquity*100))
-with col2:
+    if current_Price is not None:
+        st.metric('最新株価（円）', "{:,.1f}".format(current_Price))
+    if target_Mean_Price is not None:
+        st.metric('目標株価（アナリスト平均）', "{:,.2f}".format(target_Mean_Price))
     if dividend_Rate is not None:
         st.metric('年間配当金（円）', "{:,.2f}".format(dividend_Rate))
+    if dividend_yield is not None:
+        st.metric('配当利回り（％）', "{:,.2f}".format(dividend_yield*100))
     if payout_Ratio is not None:
-        st.metric('配当性向（％）', "{:,.2f}".format(payout_Ratio*100))
+        st.metric('配当性向（％）', "{:,.2f}".format(payout_Ratio*100))    
+with col2:
+    if pbr is not None:
+        st.metric('PBR（株価純資産倍率; 東証平均1.5倍）', "{:,.2f}".format(pbr))
     if per is not None:
         st.metric('PER（株価収益率; 東証平均15倍）', "{:,.2f}".format(per))
+    if return_OnEquity is not None:
+        st.metric('ROE（自己資本利益率≒経営効率; 目安8％）', "{:,.2f}".format(return_OnEquity*100))    
+    if total_Revenue is not None:
+        st.metric('総売上高（億円）', "{:,.2f}".format(total_Revenue/10**8))
     if operating_Margins is not None:
-            st.metric('営業利益率（％）', "{:,.2f}".format(operating_Margins*100))
-    if target_Mean_Price is not None:
-            st.metric('目標株価（アナリスト平均）', "{:,.2f}".format(target_Mean_Price))
+        st.metric('営業利益率（％）', "{:,.2f}".format(operating_Margins*100))
 #######################################################################################
 

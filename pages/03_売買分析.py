@@ -32,6 +32,7 @@ def plot_stock_price(ticker, period, interval, title, buy, sell):
 
     # 株価データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
 
