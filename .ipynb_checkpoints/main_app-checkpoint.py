@@ -63,28 +63,34 @@ period = st.selectbox('表示期間', period_list)
 st.divider()
 
 # 株価指標を表示
-st.title("株価関連指数")
-col1, col2 = st.columns(2)
-with col1:
-    st.plotly_chart(plot_stock_price('^DJI', period, 'ダウ平均'))
-    st.plotly_chart(plot_stock_price('^GSPC', period, 'S&P500指数'))
-with col2:
-    st.plotly_chart(plot_stock_price('^IXIC', period, 'ナスダック総合指数'))
+st.header("株価関連指数")
+
+tab1, tab2 = st.tabs(["米国", "日本"])
+with tab1:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(plot_stock_price('^DJI', period, 'ダウ平均'))
+        st.plotly_chart(plot_stock_price('^IXIC', period, 'ナスダック総合指数'))
+    with col2:
+        st.plotly_chart(plot_stock_price('^GSPC', period, 'S&P500指数'))
+with tab2:
     st.plotly_chart(plot_stock_price('^N225', period, '日経平均株価'))
-    
+            
+        
+st.divider()
 col1, col2 = st.columns(2)
 with col1:
     st.plotly_chart(plot_vix(period))
-    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債'))
-with col2:
     st.plotly_chart(plot_stock_price('^SOX', period, 'フィラデルフィア半導体指数（SOX）'))
+with col2:
+    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債'))
     st.plotly_chart(plot_stock_price('1328.T', period, '金 投信'))
     st.plotly_chart(plot_stock_price('1693.T', period, '銅 投信'))
 st.divider()
 
 
 # 為替指数を表示
-st.title("為替指数")
+st.header("為替指数")
 col1, col2 = st.columns(2)
 with col1:
     st.plotly_chart(plot_stock_price('USDJPY=X', period, '米ドル/日本円'))
@@ -94,25 +100,50 @@ st.divider()
 
 
 # グローバルサウスを表示
-st.title("グローバルサウス（ ETF ）")
+st.header("Global South Chart（グローバルサウス）")
+if 'show_global_south' not in st.session_state:
+    st.session_state['show_global_south'] = False
+    
 col1, col2 = st.columns(2)
 with col1:
-    st.plotly_chart(plot_stock_price('EPI', period, 'インド（EPI）'))
-    st.plotly_chart(plot_stock_price('VNM', period, 'ベトナム（VNM）'))
+    if st.button("表示", type="primary", use_container_width=True):
+        st.session_state['show_global_south'] = True
 with col2:
-    st.plotly_chart(plot_stock_price('TUR', period, 'トルコ（TUR）'))
-    st.plotly_chart(plot_stock_price('EWW', period, 'メキシコ（EWW）'))
+    if st.button("非表示", type="secondary", use_container_width=True):
+        st.session_state['show_global_south'] = False
+        
+if st.session_state['show_global_south']:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(plot_stock_price('EPI', period, 'インド（EPI）'))
+        st.plotly_chart(plot_stock_price('VNM', period, 'ベトナム（VNM）'))
+    with col2:
+        st.plotly_chart(plot_stock_price('TUR', period, 'トルコ（TUR）'))
+        st.plotly_chart(plot_stock_price('EWW', period, 'メキシコ（EWW）'))
 st.divider()
 
 
+
 # 暗号資産を表示
-st.title("暗号資産")
+st.header("暗号資産")
+if 'show_crypto' not in st.session_state:
+    st.session_state['show_crypto'] = False
+    
 col1, col2 = st.columns(2)
 with col1:
-    st.plotly_chart(plot_stock_price('BTC-USD', period, 'ビットコイン（ USD ）'))
+    if st.button("表示", type="primary", use_container_width=True, key="show_crypto_button"):
+        st.session_state['show_crypto'] = True
 with col2:
-    st.plotly_chart(plot_stock_price('ETH-USD', period, 'イーサリアム（ USD ）'))
+    if st.button("非表示", type="secondary", use_container_width=True, key="hide_crypto_button"):
+        st.session_state['show_crypto'] = False
 
+if st.session_state['show_crypto']:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(plot_stock_price('BTC-USD', period, 'ビットコイン（USD）'))
+    with col2:
+        st.plotly_chart(plot_stock_price('ETH-USD', period, 'イーサリアム（USD）'))
+st.divider()
 #######################################################################################
 
 
