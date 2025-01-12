@@ -147,8 +147,10 @@ col1, col2 = st.columns(2)
 with col1:
     st.metric('25日移動平均線乖離率（％）', "{:,.1f}".format(calculate_ma_deviation(ticker, period, interval)))
 with col2:
-    st.write('買いシグナル：-15 ~ -20％以下')
-    st.write('売りシグナル：+15 ~ +20％以上')
+    st.caption("""
+    買いシグナル：-15 ~ -20％以下\n
+    売りシグナル：+15 ~ +20％以上
+    """)
 
 # RSIグラフを表示
 st.plotly_chart(plot_stock_rsi(ticker, period, interval))
