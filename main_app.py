@@ -83,7 +83,7 @@ with col1:
     st.plotly_chart(plot_vix(period))
     st.plotly_chart(plot_stock_price('^SOX', period, 'フィラデルフィア半導体指数（SOX）'))
 with col2:
-    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債'))
+    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債利回り（％）'))
     st.plotly_chart(plot_stock_price('1328.T', period, '金 投信'))
     st.plotly_chart(plot_stock_price('1693.T', period, '銅 投信'))
 st.divider()
@@ -141,8 +141,9 @@ if st.session_state['show_crypto']:
     col1, col2 = st.columns(2)
     with col1:
         st.plotly_chart(plot_stock_price('BTC-USD', period, 'ビットコイン（USD）'))
-    with col2:
         st.plotly_chart(plot_stock_price('ETH-USD', period, 'イーサリアム（USD）'))
+    with col2:
+        st.plotly_chart(plot_stock_price('XRP-USD', period, 'リップル（USD）'))
 st.divider()
 #######################################################################################
 
