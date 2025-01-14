@@ -29,8 +29,7 @@ def get_stock_data(stock_data, infoname):
 
 
 # 株価データを描画する関数
-def plot_stock_price(ticker, period, interval, title):
-    data = get_stock_price(ticker, period = period, interval = interval)
+def plot_stock_price(data, title):
     # プロットの区切りを設定
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
 
@@ -50,17 +49,52 @@ def plot_stock_price(ticker, period, interval, title):
 
 
 # 25日移動平均線と乖離率を計算する関数
-def calculate_ma_deviation(ticker, period, interval):
-    data = get_stock_price(ticker, period = period, interval = interval)
+def calculate_ma_deviation(data):
     data['MA25'] = data['Close'].rolling(window=25).mean() # 25日移動平均線 
     data['Deviation'] = (data['Close'] - data['MA25']) / data['MA25'] * 100 # 乖離率 
     latest_deviation = data['Deviation'].iloc[-1]
     return latest_deviation
 
 
+# 一目均衡表を作成する関数
+def plot_ichimoku(data):  
+    max26 = data['High'].rolling(window=26).max()
+    min26 = data['Low'].rolling(window=26).min()
+    data['basic_line'] = (max26 + min26) / 2
+    
+    max9 = data['High'].rolling(window=9).max()
+    min9 = data['Low'].rolling(window=9).min()
+    data['turn_line'] = (max9 + min9) / 2
+    
+    data['span1'] = (data['basic_line'] + data['turn_line']) / 2
+    
+    high_52 = data['High'].rolling(window=52).max()
+    low_52 = data['Low'].rolling(window=52).min()
+    
+    data['span2'] = ((high_52 + low_52) / 2)
+    data['slow_line'] = data['Close'].shift(-25)
+    
+    # プロットの区切りを設定 
+    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03) 
+    # 株価データを描画 
+    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
+    
+    # 一目均衡表を追加描画 
+    fig.add_trace(go.Scatter(x=data.index, y=data['turn_line'], name='転換線', line=dict(color='lightsalmon'))) 
+    fig.add_trace(go.Scatter(x=data.index, y=data['basic_line'], name='基準線', line=dict(color='lightblue'))) 
+    fig.add_trace(go.Scatter(x=data.index, y=data['slow_line'], name='遅行線', line=dict(color='lightgreen')))
+
+    # SpanAとSpanBの間をグレーで塗りつぶす 
+    fig.add_trace(go.Scatter( x=data.index, y=data['span1'], line=dict(color='rgba(128, 128, 128, 0.5)', width=0), fill=None)) 
+    fig.add_trace(go.Scatter( x=data.index, y=data['span2'], line=dict(color='rgba(128, 128, 128, 0.5)', width=0), fill='tonexty', fillcolor='rgba(128, 128, 128, 0.5)'))
+    
+    fig.update_layout(title={'text': '一目均衡表', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    return fig
+
+
+
 # RSIを描画する関数
-def plot_stock_rsi(ticker, period, interval):
-    data = get_stock_price(ticker, period = period, interval = interval)
+def plot_stock_rsi(data):
     # プロットの区切りを設定
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
     # RSIを描画
@@ -75,17 +109,14 @@ def plot_stock_rsi(ticker, period, interval):
 
 
 # 直近RSIを計算する関数
-def calculate_rsi(ticker, period, interval):
-    data = get_stock_price(ticker, period = period, interval = interval)
+def calculate_rsi(data):
     rsi = RSIIndicator(data['Close']).rsi()
     latest_rsi = rsi.iloc[-1]
     return latest_rsi
 
 
 # MACDとシグナル線を計算し、ヒストグラムをプロットする関数
-def plot_macd_histogram(ticker, period, interval):
-    data = get_stock_price(ticker, period, interval)
-    
+def plot_macd_histogram(data):
     # MACDを計算
     short_window = 12
     long_window = 26
@@ -127,7 +158,7 @@ stock_name_list.sort()
 
 
 # アプリ画面構成 #######################################################################
-# selectboxの設定
+# 銘柄の設定
 selected_stock = st.selectbox('分析銘柄', stock_name_list)
 
 # 選択された文字列から銘柄コードと銘柄名を取得
@@ -140,24 +171,31 @@ period_list = ['6mo', '1y', '2y']
 period = st.selectbox('表示期間', period_list)
 st.divider()  # 水平線を追加
 
-    
+# 指定した銘柄と期間でデータ取得
+data = get_stock_price(ticker, period = period, interval = interval)
+
+
 # 株価データグラフを表示
-st.plotly_chart(plot_stock_price(ticker, period, interval, stock_name))
+st.plotly_chart(plot_stock_price(data, stock_name))
 col1, col2 = st.columns(2)
 with col1:
-    st.metric('25日移動平均線乖離率（％）', "{:,.1f}".format(calculate_ma_deviation(ticker, period, interval)))
+    st.metric('25日移動平均線乖離率（％）', "{:,.1f}".format(calculate_ma_deviation(data)))
 with col2:
     st.caption("""
     買いシグナル：-15 ~ -20％以下\n
     売りシグナル：+15 ~ +20％以上
     """)
 
+# 一目均衡表を表示
+st.plotly_chart(plot_ichimoku(data))
+    
+    
 # RSIグラフを表示
-st.plotly_chart(plot_stock_rsi(ticker, period, interval))
-st.metric('現在のRSI', "{:,.1f}".format(calculate_rsi(ticker, period, interval)))
+st.plotly_chart(plot_stock_rsi(data))
+st.metric('現在のRSI', "{:,.1f}".format(calculate_rsi(data)))
 
 # MACDグラフを表示
-st.plotly_chart( plot_macd_histogram(ticker, period, interval))
+st.plotly_chart( plot_macd_histogram(data))
 
 
 # yfinanceから株関連データを取得
