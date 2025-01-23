@@ -94,7 +94,7 @@ st.divider()
 st.header("為替指数")
 if 'show_exchange_rate' not in st.session_state:
     st.session_state['show_exchange_rate'] = False
-    
+
 col1, col2 = st.columns(2)
 with col1:
     if st.button("表示", type="primary", use_container_width=True, key="show_exchange_rate_button"):
