@@ -81,9 +81,10 @@ st.divider()
 col1, col2 = st.columns(2)
 with col1:
     st.plotly_chart(plot_vix(period))
+    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債利回り（％）'))
     st.plotly_chart(plot_stock_price('^SOX', period, 'フィラデルフィア半導体指数（SOX）'))
 with col2:
-    st.plotly_chart(plot_stock_price('^TNX', period, '米10年国債利回り（％）'))
+    st.plotly_chart(plot_stock_price('CL=F', period, 'WTI原油'))
     st.plotly_chart(plot_stock_price('1328.T', period, '金 投信'))
     st.plotly_chart(plot_stock_price('1693.T', period, '銅 投信'))
 st.divider()
@@ -91,11 +92,49 @@ st.divider()
 
 # 為替指数を表示
 st.header("為替指数")
+if 'show_exchange_rate' not in st.session_state:
+    st.session_state['show_exchange_rate'] = False
+
 col1, col2 = st.columns(2)
 with col1:
-    st.plotly_chart(plot_stock_price('USDJPY=X', period, '米ドル/日本円'))
+    if st.button("表示", type="primary", use_container_width=True, key="show_exchange_rate_button"):
+        st.session_state['show_exchange_rate'] = True
 with col2:
-    st.plotly_chart(plot_stock_price('EURJPY=X', period, 'ユーロ/日本円'))
+    if st.button("非表示", type="secondary", use_container_width=True, key="hide_exchange_rate_button"):
+        st.session_state['show_exchange_rate'] = False
+
+if st.session_state['show_exchange_rate']:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(plot_stock_price('USDJPY=X', period, '米ドル/日本円'))
+        st.plotly_chart(plot_stock_price('GBPJPY=X', period, 'ポンド/日本円'))
+    with col2:
+        st.plotly_chart(plot_stock_price('EURJPY=X', period, 'ユーロ/日本円'))
+        st.plotly_chart(plot_stock_price('CNYJPY=X', period, '人民元/日本円'))
+st.divider()
+
+
+# 暗号資産を表示
+st.header("暗号資産")
+if 'show_crypto' not in st.session_state:
+    st.session_state['show_crypto'] = False
+    
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("表示", type="primary", use_container_width=True, key="show_crypto_button"):
+        st.session_state['show_crypto'] = True
+with col2:
+    if st.button("非表示", type="secondary", use_container_width=True, key="hide_crypto_button"):
+        st.session_state['show_crypto'] = False
+
+if st.session_state['show_crypto']:
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(plot_stock_price('BTC-USD', period, 'ビットコイン（USD）'))
+        st.plotly_chart(plot_stock_price('ETH-USD', period, 'イーサリアム（USD）'))
+    with col2:
+        st.plotly_chart(plot_stock_price('XRP-USD', period, 'リップル（USD）'))
+        st.plotly_chart(plot_stock_price('SOL-USD', period, 'ソラナ（USD）'))
 st.divider()
 
 
@@ -120,30 +159,6 @@ if st.session_state['show_global_south']:
     with col2:
         st.plotly_chart(plot_stock_price('TUR', period, 'トルコ（TUR）'))
         st.plotly_chart(plot_stock_price('EWW', period, 'メキシコ（EWW）'))
-st.divider()
-
-
-
-# 暗号資産を表示
-st.header("暗号資産")
-if 'show_crypto' not in st.session_state:
-    st.session_state['show_crypto'] = False
-    
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("表示", type="primary", use_container_width=True, key="show_crypto_button"):
-        st.session_state['show_crypto'] = True
-with col2:
-    if st.button("非表示", type="secondary", use_container_width=True, key="hide_crypto_button"):
-        st.session_state['show_crypto'] = False
-
-if st.session_state['show_crypto']:
-    col1, col2 = st.columns(2)
-    with col1:
-        st.plotly_chart(plot_stock_price('BTC-USD', period, 'ビットコイン（USD）'))
-        st.plotly_chart(plot_stock_price('ETH-USD', period, 'イーサリアム（USD）'))
-    with col2:
-        st.plotly_chart(plot_stock_price('XRP-USD', period, 'リップル（USD）'))
 st.divider()
 #######################################################################################
 
