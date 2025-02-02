@@ -56,7 +56,7 @@ def plot_stock_price(ticker, period, interval, title, buy, sell):
 # 特定の銘柄コードの約定日と売買区分を取得する関数を定義
 def get_transaction_details(df, stock_code):
     filtered_df = df[df['銘柄コード'] == stock_code]
-    transaction = filtered_df[['銘柄コード','銘柄名','約定日', '売買区分', '単価［円］', '実現損益[円]']]
+    transaction = filtered_df[['銘柄コード','銘柄名','約定日', '口座区分', '売買区分', '単価［円］', '実現損益[円]']]
     return transaction
 
 # 売買の日付をリストで取得
@@ -78,7 +78,9 @@ def calculate_total_pnl(df, stock_code):
 input_data = 'data/'
 
 # データの読み込み
-rakuten = pd.read_excel(input_data + '02_運用_rakuten.xlsx', sheet_name = '国内株式_特定')
+rakuten_nisa = pd.read_excel(input_data + '02_運用_rakuten.xlsx', sheet_name = '国内株式_NISA')
+rakuten_tokutei = pd.read_excel(input_data + '02_運用_rakuten.xlsx', sheet_name = '国内株式_特定')
+rakuten = pd.concat([rakuten_nisa, rakuten_tokutei])
 rakuten['銘柄コード'] = rakuten['銘柄コード'].astype(str)  # 銘柄コード列を文字列に変換
 
 # 売買したことのある銘柄の名前を取得しリスト化
@@ -115,7 +117,7 @@ st.plotly_chart(plot_stock_price(ticker, period, interval, stock_name, buy, sell
 st.subheader('取引履歴')
 
 # 取引データを整形して表示
-transaction_history = target_data[['約定日', '売買区分', '単価［円］', '実現損益[円]']]
+transaction_history = target_data[['約定日', '口座区分', '売買区分', '単価［円］', '実現損益[円]']]
 # datetime型に変換してフォーマットを変更
 transaction_history['約定日'] = pd.to_datetime(transaction_history['約定日'])  # datetime型に変換
 transaction_history['約定日'] = transaction_history['約定日'].dt.strftime('%Y-%m-%d') 

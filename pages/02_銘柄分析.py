@@ -56,6 +56,29 @@ def calculate_ma_deviation(data):
     return latest_deviation
 
 
+# 平均足を計算する関数
+def plot_heikin_ashi(data):
+    # 平均足に必要な要素を計算
+    data['HA_Close'] = (data['Open'] + data['High'] + data['Low'] + data['Close']) / 4
+    data['HA_Open'] = (data['Open'].shift(1) + data['Close'].shift(1)) / 2
+    data['HA_Open'].iloc[0] = (data['Open'].iloc[0] + data['Close'].iloc[0]) / 2
+    data['HA_High'] = data[['High', 'HA_Open', 'HA_Close']].max(axis=1)
+    data['HA_Low'] = data[['Low', 'HA_Open', 'HA_Close']].min(axis=1)
+    
+    # 平均足を描画
+    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    fig.add_trace(go.Candlestick(x=data.index, open=data['HA_Open'], high=data['HA_High'], low=data['HA_Low'], close=data['HA_Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
+
+    # ボリンジャーバンドも描画
+    indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='Upper BB', line=dict(color='palevioletred', dash='dash')))
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='Lower BB', line=dict(color='palevioletred', dash='dash')))
+
+    fig.update_layout(title={'text': '平均足', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    return fig
+
+
 # 一目均衡表を作成する関数
 def plot_ichimoku(data):  
     max26 = data['High'].rolling(window=26).max()
@@ -139,6 +162,15 @@ def plot_macd_histogram(data):
     # グラフのタイトルとレイアウトを設定
     fig.update_layout(title={'text': '【MACD】Blue,  【Signal】Red', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
     return fig
+
+
+# 出来高を表示する関数
+def plot_volume(data):
+    fig = go.Figure()
+    volume_colors = ['tomato' if data['Close'][i] > data['Open'][i] else 'cornflowerblue' for i in range(len(data))]
+    fig.add_trace(go.Bar(x=data.index, y=data['Volume'], marker_color=volume_colors, opacity=0.5, name='Volume'))
+    fig.update_layout(title={'text':'出来高', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'})
+    return fig
 ###############################################################################################################################################
 
 
@@ -185,17 +217,22 @@ with col2:
     買いシグナル：-15 ~ -20％以下\n
     売りシグナル：+15 ~ +20％以上
     """)
+    
+# 平均足グラフを表示
+st.plotly_chart(plot_heikin_ashi(data))
+
+# 出来高グラフを表示
+st.plotly_chart(plot_volume(data))
 
 # 一目均衡表を表示
 st.plotly_chart(plot_ichimoku(data))
-    
     
 # RSIグラフを表示
 st.plotly_chart(plot_stock_rsi(data))
 st.metric('現在のRSI', "{:,.1f}".format(calculate_rsi(data)))
 
 # MACDグラフを表示
-st.plotly_chart( plot_macd_histogram(data))
+st.plotly_chart(plot_macd_histogram(data))
 
 
 # yfinanceから株関連データを取得
