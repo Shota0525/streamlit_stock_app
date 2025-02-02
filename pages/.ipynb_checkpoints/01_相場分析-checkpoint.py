@@ -79,4 +79,9 @@ st.divider()
 # RSIグラフを表示
 st.plotly_chart(plot_stock_rsi(ticker, period, interval))
 st.metric('現在のRSI', "{:,.1f}".format(calculate_rsi(ticker, period, interval)))
+st.divider()
+
+# 外部サイトリンクの埋め込み
+st.header("外部サイトリンク")
+st.link_button("騰落レシオ＆投資主体別履歴", "https://nikkei225jp.com/data/touraku.php")
 #######################################################################################
