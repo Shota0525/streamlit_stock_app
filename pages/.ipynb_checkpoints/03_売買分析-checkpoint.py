@@ -21,6 +21,8 @@ interval = '1d'
 # 株価を取得する関数
 def get_stock_price(ticker, period, interval):
     data = yf.download(ticker, period = period, interval = interval)
+    data['Adj Close'] = 0
+    data.columns = ['Close', 'High', 'Low', 'Open', 'Volume', 'Adj Close']
     return data
 
 
@@ -28,8 +30,8 @@ def get_stock_price(ticker, period, interval):
 def plot_stock_price(ticker, period, interval, title, buy, sell):
     data = get_stock_price(ticker, period = period, interval = interval)
     # プロットの区切りを設定
-    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
-
+    #fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    fig = go.Figure()
     # 株価データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
@@ -100,6 +102,8 @@ stock_code = selected_stock.split('：')[0]
 stock_name = selected_stock.split('：')[1]
 st.divider()  # 水平線を追加
 
+######確認
+st.dataframe(get_stock_price(stock_code + '.T', period, interval), use_container_width=True, hide_index=True)
 
 # 選択した銘柄の各種情報を取得
 stock_code, = rakuten.loc[rakuten['銘柄名'] == stock_name, '銘柄コード'].unique()

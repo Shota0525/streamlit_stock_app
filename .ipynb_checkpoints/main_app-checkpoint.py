@@ -13,6 +13,7 @@ from ta.volatility import BollingerBands
 # 株価を取得する関数
 def get_stock_price(ticker, period, interval):
     data = yf.download(ticker, period = period, interval = interval)
+    data.columns = ['Open', 'High', 'Low', 'Close', 'Adj Close','Volume']
     return data
 
 
@@ -21,6 +22,7 @@ def plot_stock_price(ticker, period, title):
     data = get_stock_price(ticker, period = period, interval = '1d')
     # プロットの区切りを設定
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    
     # 株価データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
@@ -39,7 +41,8 @@ def plot_stock_price(ticker, period, title):
 def plot_vix(period):
     data = get_stock_price('^VIX', period = period, interval = '1d')
     # プロットの区切りを設定
-    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    #fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    fig = go.Figure()
     # 指数データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
@@ -94,11 +97,7 @@ st.divider()
 st.header("為替指数")
 if 'show_exchange_rate' not in st.session_state:
     st.session_state['show_exchange_rate'] = False
-<<<<<<< HEAD
     
-=======
-
->>>>>>> 4d7bacb07272812dc88117a04418e5710b42789b
 col1, col2 = st.columns(2)
 with col1:
     if st.button("表示", type="primary", use_container_width=True, key="show_exchange_rate_button"):

@@ -84,9 +84,6 @@ st.divider()
 # 外部サイトリンクの埋め込み
 st.header("外部サイトリンク")
 st.link_button("騰落レシオ＆投資主体別履歴", "https://nikkei225jp.com/data/touraku.php")
-<<<<<<< HEAD
 st.link_button("日経平均 ヒートマップ", "https://nikkei225jp.com/nikkei/")
 st.link_button("決算速報（株探）", "https://kabutan.jp/news/")
-=======
->>>>>>> b59eab3e0037fafcc75f8cf0b93e442709df972c
 #######################################################################################

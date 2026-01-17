@@ -8,11 +8,11 @@ import ta
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 
-
 # 各関数を定義 #################################################################################################################################
 # 株価を取得する関数
 def get_stock_price(ticker, period, interval):
     data = yf.download(ticker, period = period, interval = interval)
+    data.columns = ['Open', 'High', 'Low', 'Close', 'Adj Close','Volume']
     return data
 
 
@@ -21,6 +21,7 @@ def plot_stock_price(ticker, period, title):
     data = get_stock_price(ticker, period = period, interval = '1d')
     # プロットの区切りを設定
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    
     # 株価データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
@@ -39,7 +40,8 @@ def plot_stock_price(ticker, period, title):
 def plot_vix(period):
     data = get_stock_price('^VIX', period = period, interval = '1d')
     # プロットの区切りを設定
-    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    #fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
+    fig = go.Figure()
     # 指数データと移動曲線を描画
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='original'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
