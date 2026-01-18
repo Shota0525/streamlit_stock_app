@@ -53,12 +53,13 @@ def plot_stock_price(ticker, period, interval, title, buy_dates, sell_dates, sta
     # 株価本体と移動平均線
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='株価', line=dict(color='gray', width=2)))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
 
     # ボリンジャーバンド
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
-    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='BB+2σ', line=dict(color='rgba(200,0,0,0.2)', dash='dash')))
-    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='BB-2σ', line=dict(color='rgba(200,0,0,0.2)', dash='dash')))
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='BB+2σ', line=dict(color='#BDBDBD', dash='dash')))
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='BB-2σ', line=dict(color='#BDBDBD', dash='dash')))
 
     # タイムゾーン考慮のため日付を文字列にして比較
     data_idx_str = data.index.strftime('%Y-%m-%d')

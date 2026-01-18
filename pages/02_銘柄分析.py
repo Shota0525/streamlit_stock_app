@@ -6,68 +6,74 @@ import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import ta
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 
-
 # 基本条件を指定
-################
 interval = '1d'
-################
 
 # 各関数を定義 #################################################################################################################################
 # 株価を取得する関数
 def get_stock_price(ticker, period, interval):
-    data = yf.download(ticker, period = period, interval = interval)
+    """最新yfinance対応版: MultiIndex解除と列名の整理"""
+    data = yf.download(ticker, period=period, interval=interval, progress=False)
+    
+    if data.empty:
+        return pd.DataFrame()
+    
+    # 1. 最新yfinanceのMultiIndex対策
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = data.columns.get_level_values(0)
+    
     return data
 
 # 株関連データから必要な情報を取得する関数
 def get_stock_data(stock_data, infoname):
-    info_data = stock_data.info.get(infoname, None)
-    return info_data
-
+    return stock_data.info.get(infoname, None)
 
 # 株価データを描画する関数
 def plot_stock_price(data, title):
-    # プロットの区切りを設定
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
 
-    # 株価データと移動曲線を描画
+    # 色の視認性を改善（ダークモード考慮）
     fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
-
     # ボリンジャーバンドも描画
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
-    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='Upper BB', line=dict(color='palevioletred', dash='dash')))
-    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='Lower BB', line=dict(color='palevioletred', dash='dash')))
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='BB+2σ', line=dict(color='#BDBDBD', dash='dash')))
+    fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='BB-2σ', line=dict(color='#BDBDBD', dash='dash')))
 
-    fig.update_layout(title={'text': title, 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    fig.update_layout(title={'text': title, 'x': 0.5, 'y': 0.9, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, height=600)
     return fig
-
 
 # 25日移動平均線と乖離率を計算する関数
 def calculate_ma_deviation(data):
-    data['MA25'] = data['Close'].rolling(window=25).mean() # 25日移動平均線 
-    data['Deviation'] = (data['Close'] - data['MA25']) / data['MA25'] * 100 # 乖離率 
-    latest_deviation = data['Deviation'].iloc[-1]
-    return latest_deviation
-
+    ma25 = data['Close'].rolling(window=25).mean()
+    deviation = (data['Close'] - ma25) / ma25 * 100
+    return deviation.iloc[-1]
 
 # 平均足を計算する関数
 def plot_heikin_ashi(data):
-    # 平均足に必要な要素を計算
-    data['HA_Close'] = (data['Open'] + data['High'] + data['Low'] + data['Close']) / 4
-    data['HA_Open'] = (data['Open'].shift(1) + data['Close'].shift(1)) / 2
-    data['HA_Open'].iloc[0] = (data['Open'].iloc[0] + data['Close'].iloc[0]) / 2
-    data['HA_High'] = data[['High', 'HA_Open', 'HA_Close']].max(axis=1)
-    data['HA_Low'] = data[['Low', 'HA_Open', 'HA_Close']].min(axis=1)
+    ha_df = data.copy()
+    ha_df['HA_Close'] = (data['Open'] + data['High'] + data['Low'] + data['Close']) / 4
     
+    # Openの計算（1つ前の要素に依存するためループ、または漸化式的処理が必要ですが近似で対応）
+    ha_open = np.zeros(len(data))
+    ha_open[0] = (data['Open'].iloc[0] + data['Close'].iloc[0]) / 2
+    for i in range(1, len(data)):
+        ha_open[i] = (ha_open[i-1] + ha_df['HA_Close'].iloc[i-1]) / 2
+    ha_df['HA_Open'] = ha_open
+    
+    ha_df['HA_High'] = ha_df[['High', 'HA_Open', 'HA_Close']].max(axis=1)
+    ha_df['HA_Low'] = ha_df[['Low', 'HA_Open', 'HA_Close']].min(axis=1)
+    
+    #fig = make_subplots(rows=1, cols=1)
+    #fig.add_trace(go.Candlestick(x=ha_df.index, open=ha_df['HA_Open'], high=ha_df['HA_High'], low=ha_df['HA_Low'], close=ha_df['HA_Close'], name='平均足', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
     # 平均足を描画
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
-    fig.add_trace(go.Candlestick(x=data.index, open=data['HA_Open'], high=data['HA_High'], low=data['HA_Low'], close=data['HA_Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
+    fig.add_trace(go.Candlestick(x=data.index, open=ha_df['HA_Open'], high=ha_df['HA_High'], low=ha_df['HA_Low'], close=ha_df['HA_Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
 
     # ボリンジャーバンドも描画
@@ -75,12 +81,12 @@ def plot_heikin_ashi(data):
     fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='Upper BB', line=dict(color='palevioletred', dash='dash')))
     fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_lband(), name='Lower BB', line=dict(color='palevioletred', dash='dash')))
 
-    fig.update_layout(title={'text': '平均足', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    fig.update_layout(title={'text': '平均足', 'x': 0.5}, xaxis_rangeslider_visible=False, height=500)
     return fig
-
 
 # 一目均衡表を作成する関数
 def plot_ichimoku(data):  
+    # 転換線・基準線の計算
     max26 = data['High'].rolling(window=26).max()
     min26 = data['Low'].rolling(window=26).min()
     data['basic_line'] = (max26 + min26) / 2
@@ -89,18 +95,27 @@ def plot_ichimoku(data):
     min9 = data['Low'].rolling(window=9).min()
     data['turn_line'] = (max9 + min9) / 2
     
+    # 先行スパンの計算
     data['span1'] = (data['basic_line'] + data['turn_line']) / 2
     
     high_52 = data['High'].rolling(window=52).max()
     low_52 = data['Low'].rolling(window=52).min()
-    
     data['span2'] = ((high_52 + low_52) / 2)
+    
+    # 遅行線の計算
     data['slow_line'] = data['Close'].shift(-25)
     
     # プロットの区切りを設定 
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03) 
+    
     # 株価データを描画 
-    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
+    fig.add_trace(go.Candlestick(
+        x=data.index, 
+        open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], 
+        name='株価', # 凡例名をわかりやすく変更
+        increasing_line_color='tomato', 
+        decreasing_line_color='cornflowerblue'
+    ))
     
     # 一目均衡表を追加描画 
     fig.add_trace(go.Scatter(x=data.index, y=data['turn_line'], name='転換線', line=dict(color='lightsalmon'))) 
@@ -108,172 +123,108 @@ def plot_ichimoku(data):
     fig.add_trace(go.Scatter(x=data.index, y=data['slow_line'], name='遅行線', line=dict(color='lightgreen')))
 
     # SpanAとSpanBの間をグレーで塗りつぶす 
-    fig.add_trace(go.Scatter( x=data.index, y=data['span1'], line=dict(color='rgba(128, 128, 128, 0.5)', width=0), fill=None)) 
-    fig.add_trace(go.Scatter( x=data.index, y=data['span2'], line=dict(color='rgba(128, 128, 128, 0.5)', width=0), fill='tonexty', fillcolor='rgba(128, 128, 128, 0.5)'))
+    fig.add_trace(go.Scatter(
+        x=data.index, y=data['span1'], 
+        line=dict(color='rgba(128, 128, 128, 0.5)', width=0), 
+        fill=None, 
+        showlegend=False # 塗りつぶしの片方は凡例非表示
+    )) 
+    fig.add_trace(go.Scatter(
+        x=data.index, y=data['span2'], 
+        line=dict(color='rgba(128, 128, 128, 0.5)', width=0), 
+        fill='tonexty', 
+        fillcolor='rgba(128, 128, 128, 0.5)', 
+        name='雲（抵抗帯）' # 凡例に表示
+    ))
     
-    fig.update_layout(title={'text': '一目均衡表', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    # レイアウト設定：凡例をグラフ上部に水平に配置
+    fig.update_layout(
+        title={'text': '一目均衡表', 'x': 0.5, 'y': 0.95, 'xanchor': 'center', 'yanchor': 'top'}, 
+        xaxis_rangeslider_visible=False, 
+        showlegend=True, # 凡例を表示
+        legend=dict(
+            orientation="h",       # 水平(horizontal)に並べる
+            yanchor="bottom",      # 凡例の下側を基準にする
+            y=1.02,                # グラフのすぐ上(1.0以上)に配置
+            xanchor="center",      # 凡例の中央を基準にする
+            x=0.5                  # グラフの中央に配置
+        ),
+        margin=dict(t=100)         # 凡例とタイトルが重ならないよう上部マージンを確保
+    )
     return fig
-
-
 
 # RSIを描画する関数
 def plot_stock_rsi(data):
-    # プロットの区切りを設定
-    fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
-    # RSIを描画
     rsi = RSIIndicator(data['Close']).rsi()
-    fig.add_trace(go.Scatter(x=data.index, y=rsi, name='RSI', line=dict(color='rosybrown')))
-    # 70と30の水平線を追加 
-    fig.add_shape(type='line', x0=data.index[0], x1=data.index[-1], y0=70, y1=70, line=dict(color='palevioletred', width=2, dash='dash')) 
-    fig.add_shape(type='line', x0=data.index[0], x1=data.index[-1], y0=30, y1=30, line=dict(color='palevioletred', width=2, dash='dash'))
-
-    fig.update_layout(title={'text': 'RSI：Relative Strength Index（相対力指数）', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
-    return fig
-
-
-# 直近RSIを計算する関数
-def calculate_rsi(data):
-    rsi = RSIIndicator(data['Close']).rsi()
-    latest_rsi = rsi.iloc[-1]
-    return latest_rsi
-
-
-# MACDとシグナル線を計算し、ヒストグラムをプロットする関数
-def plot_macd_histogram(data):
-    # MACDを計算
-    short_window = 12
-    long_window = 26
-    signal_window = 9
-    
-    data['EMA12'] = data['Close'].ewm(span=short_window, adjust=False).mean()
-    data['EMA26'] = data['Close'].ewm(span=long_window, adjust=False).mean()
-    data['MACD'] = data['EMA12'] - data['EMA26']
-    data['Signal'] = data['MACD'].ewm(span=signal_window, adjust=False).mean()
-    data['Histogram'] = data['MACD'] - data['Signal']
-    
-    # プロットの区切りを設定
     fig = go.Figure()
-    # MACDのヒストグラムを棒グラフで描画
-    fig.add_trace(go.Bar(x=data.index, y=data['Histogram'], name='MACD Histogram', marker_color='lightgray'))
-    # MACDのラインを折れ線グラフで描画
-    fig.add_trace(go.Scatter(x=data.index, y=data['MACD'], mode='lines', name='MACD', line=dict(color='lightblue')))
-    # シグナル線を折れ線グラフで描画
-    fig.add_trace(go.Scatter(x=data.index, y=data['Signal'], mode='lines', name='Signal Line', line=dict(color='lightcoral')))
-    # グラフのタイトルとレイアウトを設定
-    fig.update_layout(title={'text': '【MACD】Blue,  【Signal】Red', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'}, xaxis_rangeslider_visible=False, showlegend=False)
+    fig.add_trace(go.Scatter(x=data.index, y=rsi, name='RSI', line=dict(color='rosybrown')))
+    fig.add_hline(y=70, line_dash="dash", line_color="red")
+    fig.add_hline(y=30, line_dash="dash", line_color="green")
+    fig.update_layout(title={'text': 'RSI：Relative Strength Index（相対力指数）', 'x': 0.5, 'xanchor': 'center'}, yaxis=dict(range=[0, 100]), height=300)
     return fig
 
+# MACDをプロットする関数
+def plot_macd_histogram(data):
+    exp1 = data['Close'].ewm(span=12, adjust=False).mean()
+    exp2 = data['Close'].ewm(span=26, adjust=False).mean()
+    macd = exp1 - exp2
+    signal = macd.ewm(span=9, adjust=False).mean()
+    hist = macd - signal
+    
+    fig = make_subplots(rows=1, cols=1)
+    fig.add_trace(go.Bar(x=data.index, y=hist, name='ヒストグラム', marker_color='gray'))
+    fig.add_trace(go.Scatter(x=data.index, y=macd, name='MACD', line=dict(color='#00E5FF')))
+    fig.add_trace(go.Scatter(x=data.index, y=signal, name='Signal', line=dict(color='tomato')))
+    fig.update_layout(title={'text': 'MACD', 'x': 0.5}, height=300)
+    return fig
 
 # 出来高を表示する関数
 def plot_volume(data):
-    fig = go.Figure()
-    volume_colors = ['tomato' if data['Close'][i] > data['Open'][i] else 'cornflowerblue' for i in range(len(data))]
-    fig.add_trace(go.Bar(x=data.index, y=data['Volume'], marker_color=volume_colors, opacity=0.5, name='Volume'))
-    fig.update_layout(title={'text':'出来高', 'x': 0.5, 'y': 0.8, 'xanchor': 'center', 'yanchor': 'top'})
+    colors = ['tomato' if c >= o else 'cornflowerblue' for c, o in zip(data['Close'], data['Open'])]
+    fig = go.Figure(go.Bar(x=data.index, y=data['Volume'], marker_color=colors, name='出来高'))
+    fig.update_layout(title={'text':'出来高', 'x': 0.5}, height=250)
     return fig
-###############################################################################################################################################
 
-
-# データ取得 ###########################################################################
-# ディレクトリを指定
+# --- メイン処理 ---
 input_data = 'data/'
+try:
+    jpx = pd.read_excel(input_data + 'JPX_業種区分マスタ.xlsx')
+    jpx['コード'] = jpx['コード'].astype(str)
+except:
+    st.error("JPXマスタの読み込みに失敗しました。")
+    st.stop()
 
-# データの読み込み
-jpx = pd.read_excel(input_data + 'JPX_業種区分マスタ.xlsx')
-jpx['コード'] = jpx['コード'].astype(str)  # 銘柄コード列を文字列に変換
-
-# 売買したことのある銘柄の名前を取得しリスト化
 stock_info = jpx[['コード', '銘柄名']].drop_duplicates()
 stock_name_list = [f"{code}：{name}" for code, name in zip(stock_info['コード'], stock_info['銘柄名'])]
 stock_name_list.sort()
-#######################################################################################
 
-
-# アプリ画面構成 #######################################################################
-# 銘柄の設定
 selected_stock = st.selectbox('分析銘柄', stock_name_list)
-
-# 選択された文字列から銘柄コードと銘柄名を取得
 stock_code = selected_stock.split('：')[0]
 ticker = stock_code + '.T'
 stock_name = selected_stock.split('：')[1]
 
-# 表示期間の指定
-period_list = ['6mo', '1y', '2y']
-period = st.selectbox('表示期間', period_list)
-st.divider()  # 水平線を追加
+period = st.selectbox('表示期間', ['6mo', '1y', '2y'], index=0)
+data = get_stock_price(ticker, period, interval)
 
-# 指定した銘柄と期間でデータ取得
-data = get_stock_price(ticker, period = period, interval = interval)
-
-
-# 株価データグラフを表示
-st.plotly_chart(plot_stock_price(data, stock_name))
-col1, col2 = st.columns(2)
-with col1:
-    st.metric('25日移動平均線乖離率（％）', "{:,.1f}".format(calculate_ma_deviation(data)))
-with col2:
-    st.caption("""
-    買いシグナル：-15 ~ -20％以下\n
-    売りシグナル：+15 ~ +20％以上
-    """)
+if not data.empty:
+    st.plotly_chart(plot_stock_price(data, stock_name), use_container_width=True)
     
-# 平均足グラフを表示
-st.plotly_chart(plot_heikin_ashi(data))
-
-# 出来高グラフを表示
-st.plotly_chart(plot_volume(data))
-
-# 一目均衡表を表示
-st.plotly_chart(plot_ichimoku(data))
+    c1, c2 = st.columns(2)
+    c1.metric('25日乖離率', f"{calculate_ma_deviation(data):.1f}%")
+    c2.caption("買い目安: -15%以下 / 売り目安: +15%以上")
     
-# RSIグラフを表示
-st.plotly_chart(plot_stock_rsi(data))
-st.metric('現在のRSI', "{:,.1f}".format(calculate_rsi(data)))
+    st.plotly_chart(plot_heikin_ashi(data), use_container_width=True)
+    st.plotly_chart(plot_volume(data), use_container_width=True)
+    st.plotly_chart(plot_ichimoku(data), use_container_width=True)
+    st.plotly_chart(plot_stock_rsi(data), use_container_width=True)
+    st.plotly_chart(plot_macd_histogram(data), use_container_width=True)
 
-# MACDグラフを表示
-st.plotly_chart(plot_macd_histogram(data))
-
-
-# yfinanceから株関連データを取得
-stock_data = yf.Ticker(ticker)
-current_Price = get_stock_data(stock_data, 'currentPrice')  # 最新株価
-market_cap = get_stock_data(stock_data, 'marketCap')  # 時価総額
-dividend_Rate = get_stock_data(stock_data, 'dividendRate')  # 年間配当金
-dividend_yield = get_stock_data(stock_data, 'dividendYield')  # 配当利回り
-payout_Ratio = get_stock_data(stock_data, 'payoutRatio')  # 配当性向
-pbr = get_stock_data(stock_data, 'priceToBook')  # PBR
-per = get_stock_data(stock_data, 'trailingPE')  # PER（直近12ヶ月の利益に基づく）
-return_OnEquity = get_stock_data(stock_data, 'returnOnEquity')  #  ROE（自己資本利益率）
-total_Revenue = get_stock_data(stock_data, 'totalRevenue')  # 総売上高
-operating_Margins = get_stock_data(stock_data, 'operatingMargins')  # 営業利益率
-target_Mean_Price = get_stock_data(stock_data, 'targetMeanPrice')  # 目標株価（アナリスト平均）
+    # 企業詳細情報の取得
+    stock_obj = yf.Ticker(ticker)
+    info = stock_obj.info
     
-# 詳細情報を表示
-col1, col2 = st.columns(2)
-with col1:
-    if market_cap is not None:
-        st.metric('時価総額（億円）', "{:,.2f}".format(market_cap/10**8))
-    if current_Price is not None:
-        st.metric('最新株価（円）', "{:,.1f}".format(current_Price))
-    if target_Mean_Price is not None:
-        st.metric('目標株価（アナリスト平均）', "{:,.2f}".format(target_Mean_Price))
-    if dividend_Rate is not None:
-        st.metric('年間配当金（円）', "{:,.2f}".format(dividend_Rate))
-    if dividend_yield is not None:
-        st.metric('配当利回り（％）', "{:,.2f}".format(dividend_yield*100))
-    if payout_Ratio is not None:
-        st.metric('配当性向（％）', "{:,.2f}".format(payout_Ratio*100))    
-with col2:
-    if pbr is not None:
-        st.metric('PBR（株価純資産倍率; 東証平均1.5倍）', "{:,.2f}".format(pbr))
-    if per is not None:
-        st.metric('PER（株価収益率; 東証平均15倍）', "{:,.2f}".format(per))
-    if return_OnEquity is not None:
-        st.metric('ROE（自己資本利益率≒経営効率; 目安8％）', "{:,.2f}".format(return_OnEquity*100))    
-    if total_Revenue is not None:
-        st.metric('総売上高（億円）', "{:,.2f}".format(total_Revenue/10**8))
-    if operating_Margins is not None:
-        st.metric('営業利益率（％）', "{:,.2f}".format(operating_Margins*100))
-#######################################################################################
-
+    st.subheader("📋 銘柄詳細データ")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("最新株価", f"{info.get('currentPrice', 0):,} 円")
+    m2.metric("配当利回り", f"{info.get('dividendYield', 0)*100:.2f} %")
+    m3.metric("PER", f"{info.get('trailingPE', 0):.2f}")
