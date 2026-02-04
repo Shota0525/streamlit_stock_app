@@ -35,11 +35,12 @@ def get_stock_data(stock_data, infoname):
 def plot_stock_price(data, title):
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
 
-    # 色の視認性を改善（ダークモード考慮）
-    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
+    # 色の視認性を改善
+    fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], name='original', increasing_line_color='#00FF00', decreasing_line_color='#FF0000'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=5).mean(), name='MA5', line=dict(color='#F99C30')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='#52B8FF')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='#E17EC0')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='#3E77C4')))
     # ボリンジャーバンドも描画
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
     fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='BB+2σ', line=dict(color='#BDBDBD', dash='dash')))
@@ -73,8 +74,8 @@ def plot_heikin_ashi(data):
     #fig.add_trace(go.Candlestick(x=ha_df.index, open=ha_df['HA_Open'], high=ha_df['HA_High'], low=ha_df['HA_Low'], close=ha_df['HA_Close'], name='平均足', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
     # 平均足を描画
     fig = make_subplots(rows=1, cols=1, shared_xaxes=True, vertical_spacing=0.03)
-    fig.add_trace(go.Candlestick(x=data.index, open=ha_df['HA_Open'], high=ha_df['HA_High'], low=ha_df['HA_Low'], close=ha_df['HA_Close'], name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
+    fig.add_trace(go.Candlestick(x=data.index, open=ha_df['HA_Open'], high=ha_df['HA_High'], low=ha_df['HA_Low'], close=ha_df['HA_Close'], name='original', increasing_line_color='#00FF00', decreasing_line_color='#FF0000'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='#E17EC0')))
 
     # ボリンジャーバンドも描画
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
@@ -113,8 +114,8 @@ def plot_ichimoku(data):
         x=data.index, 
         open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], 
         name='株価', # 凡例名をわかりやすく変更
-        increasing_line_color='tomato', 
-        decreasing_line_color='cornflowerblue'
+        increasing_line_color='#00FF00', 
+        decreasing_line_color='#FF0000'
     ))
     
     # 一目均衡表を追加描画 
@@ -180,7 +181,7 @@ def plot_macd_histogram(data):
 
 # 出来高を表示する関数
 def plot_volume(data):
-    colors = ['tomato' if c >= o else 'cornflowerblue' for c, o in zip(data['Close'], data['Open'])]
+    colors = ['#00FF00' if c >= o else '#FF0000' for c, o in zip(data['Close'], data['Open'])]
     fig = go.Figure(go.Bar(x=data.index, y=data['Volume'], marker_color=colors, name='出来高'))
     fig.update_layout(title={'text':'出来高', 'x': 0.5}, height=250)
     return fig

@@ -52,10 +52,10 @@ def plot_stock_price(ticker, period, interval, title, buy_dates, sell_dates, sta
     
     # 株価本体と移動平均線
     fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='株価', line=dict(color='gray', width=2)))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
-
+    # fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=5).mean(), name='MA5', line=dict(color='#F99C30')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='#52B8FF')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='#E17EC0')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='#3E77C4')))
     # ボリンジャーバンド
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
     fig.add_trace(go.Scatter(x=data.index, y=indicator_bb.bollinger_hband(), name='BB+2σ', line=dict(color='#BDBDBD', dash='dash')))
@@ -68,10 +68,10 @@ def plot_stock_price(ticker, period, interval, title, buy_dates, sell_dates, sta
 
     # 売買ポイントの描画
     buy_points = data[data_idx_str.isin(buy_str)]
-    fig.add_trace(go.Scatter(x=buy_points.index, y=buy_points['Close'], name='買付', mode='markers', marker=dict(color='forestgreen', size=12, symbol='triangle-up')))
+    fig.add_trace(go.Scatter(x=buy_points.index, y=buy_points['Close'], name='買付', mode='markers', marker=dict(color='#00FF00', size=11, symbol='triangle-up')))
 
     sell_points = data[data_idx_str.isin(sell_str)]
-    fig.add_trace(go.Scatter(x=sell_points.index, y=sell_points['Close'], name='売付', mode='markers', marker=dict(color='crimson', size=12, symbol='triangle-down')))
+    fig.add_trace(go.Scatter(x=sell_points.index, y=sell_points['Close'], name='売付', mode='markers', marker=dict(color='#FF0000', size=11, symbol='triangle-down')))
 
     fig.update_layout(title={'text': title, 'x': 0.5}, xaxis_rangeslider_visible=False, height=600)
     return fig
@@ -135,7 +135,7 @@ st.plotly_chart(plot_stock_price(ticker, selected_period, interval, stock_name, 
 
 # 取引履歴テーブル
 st.subheader('取引履歴詳細')
-history = target_data[['約定日', '口座区分', '売買区分', '単価［円］', '実現損益[円]']].copy()
+history = target_data[['約定日', '口座区分', '売買区分', '数量［株］', '単価［円］', '実現損益[円]']].copy()
 history['約定日'] = pd.to_datetime(history['約定日']).dt.strftime('%Y-%m-%d')
 st.dataframe(history.sort_values('約定日', ascending=False), use_container_width=True, hide_index=True)
 

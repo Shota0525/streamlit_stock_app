@@ -28,10 +28,11 @@ def plot_stock_price(ticker, period, interval, title):
 
     # 株価データと移動曲線を描画
     fig.add_trace(go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'], 
-                                 name='original', increasing_line_color='tomato', decreasing_line_color='cornflowerblue'))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='lightcoral')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='lightblue')))
-    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='lightsalmon')))
+                                 name='original', increasing_line_color='#00FF00', decreasing_line_color='#FF0000'))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=5).mean(), name='MA5', line=dict(color='#F99C30')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=25).mean(), name='MA25', line=dict(color='#52B8FF')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=50).mean(), name='MA50', line=dict(color='#E17EC0')))
+    fig.add_trace(go.Scatter(x=data.index, y=data['Close'].rolling(window=75).mean(), name='MA75', line=dict(color='#3E77C4')))
 
     # ボリンジャーバンド
     indicator_bb = BollingerBands(close=data["Close"], window=20, window_dev=2)
